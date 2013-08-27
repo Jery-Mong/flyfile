@@ -1,7 +1,5 @@
-#ifndef __TRANSMITION_H
-#define __TRANSMITION_H
-
-#define NAME_LEN 128
+#ifndef __MESSAGE_H
+#define __MESSAGE_H
 
 enum message_type {
 	MSG_FILE_REQ,
@@ -11,22 +9,11 @@ enum message_type {
 	MSG_OFFLINE,
 	MSG_CHAT,
 };
-struct host_raw {
-	char name[NAME_LEN];
-};
-
-class host {
-public:
-	static char[32] peer_map; 
-private:
-	string name;
-	string ip;	
-};
 
 struct msg_raw {
 	int msg_type;
 	int data_size;
-}
+};
 
 	
 class message {
@@ -40,5 +27,4 @@ public:
 	void *msg_data;
 private:
 };
-
 #endif
