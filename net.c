@@ -108,9 +108,12 @@ struct peer *peer_inlist(struct message *msg)
 	return pr;
 }
 
-void get_local_ip()
+in_addr_t get_local_ip()
 {
-	int inet_sock;
+	int fd;
+
+	in_addr_t ip;
+	in_addr_t mask = inet_addr("192.168.0.0");
 	
         struct ifreq *ifr;
 	struct ifconf ifc;
@@ -119,21 +122,21 @@ void get_local_ip()
 	ifc.ifc_len = sizeof(struct ifreq) * 5;
 	ifc.ifc_buf = (struct freq *)malloc(ifc.ifc_len);
 	
-        inet_sock = socket(AF_INET, SOCK_DGRAM, 0);
+        fd = socket(AF_INET, SOCK_DGRAM, 0);
 	
-        if (ioctl(inet_sock, SIOCGIFCONF, &ifc) < 0)
+        if (ioctl(fd, SIOCGIFCONF, &ifc) < 0)
                 perror("ioctl");
 
 	int i = ifc.ifc_len / sizeof(struct ifreq);
 	
 	for (ifr = ifc.ifc_req; i > 0; i-- ) {
-		printf("name:%s\n", ifr->ifr_name);
-		printf("ip:%s\n", inet_ntoa(((struct sockaddr_in*)&(ifr->ifr_addr))->sin_addr));
-		printf("\n");
-		ifr++;
+		ip = ifr->ifc_addr.sin_addr.s_addr;;
+		if ((ip & 0xffffff00) == mask)
+			return ip;
+		else
+			ifr++;
 	}
         return 0;
-}
 }
 void peer_online(struct message *msg)
 {
