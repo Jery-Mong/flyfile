@@ -1,39 +1,8 @@
 #include <sys/sock.h>
 #include <netinet/in.h>
+#include <stdlib.h>
 
-
-void msg_handler(void *data)
-{
-	struct *msg = (struct message *)data;
-
-	switch (msg->type) {
-	case MSG_ONLINE:
-		peer_outlist(msg) ;
-	case MSG_ONLINE:
-		peer_online(msg);
-		break;
-	case MSG_FILE_RQST:
-	case MSG_CHAT_RQST:
-		respond_rqst(msg);
-		break;
-	case MSG_FILE_START:
-		receive_file(msg);
-		break;
-	case MSG_FILE_ACK:
-		handle_ack();
-		break;
-	case MSG_CHAT:
-		chat_with_peer(msg);
-		break;
-	case MSG_PEER_INF:
-		peer_inlist(msg);
-		break;
-	default:
-		break;
-	}
-}
-
-int get_sockfd(int type, struct peer *pr)
+int getsockfd(int type, struct peer *pr)
 {
 	int fd;
 	struct sockaddr_in addr;
@@ -86,7 +55,7 @@ int get_sockfd(int type, struct peer *pr)
 }
 void bcast_online()
 {
-	int fd = get_sockfd(FD_BROADCAST, NULL);
+	int fd = getsockfd(FD_BROADCAST, NULL);
 	send(fd, &self->id, sizeof(struct base_inf), 0);
 
 	shutdown(fd, SHUT_RDWR);
@@ -114,29 +83,30 @@ in_addr_t get_local_ip()
 
 	in_addr_t ip;
 	in_addr_t mask = inet_addr("192.168.0.0");
+	struct sockaddr_in *addr;
 	
-        struct ifreq *ifr;
+	struct ifreq *ifr;
 	struct ifconf ifc;
-
 	
-	ifc.ifc_len = sizeof(struct ifreq) * 5;
+	ifc.ifc_len = sizeof(struct ifreq) * 4;
 	ifc.ifc_buf = (struct freq *)malloc(ifc.ifc_len);
 	
-        fd = socket(AF_INET, SOCK_DGRAM, 0);
+	fd = socket(AF_INET, SOCK_DGRAM, 0);
 	
-        if (ioctl(fd, SIOCGIFCONF, &ifc) < 0)
-                perror("ioctl");
+	if (ioctl(fd, SIOCGIFCONF, &ifc) < 0)
+		perror("ioctl");
 
 	int i = ifc.ifc_len / sizeof(struct ifreq);
 	
 	for (ifr = ifc.ifc_req; i > 0; i-- ) {
-		ip = ifr->ifc_addr.sin_addr.s_addr;;
-		if ((ip & 0xffffff00) == mask)
+		addr = (struct sockaddr_in *)&ifr->ifr_addr;
+		ip = addr->sin_addr.s_addr;;
+		if ((ip & 0x0000ffff) == mask)
 			return ip;
 		else
 			ifr++;
 	}
-        return 0;
+	return 0;
 }
 void peer_online(struct message *msg)
 {
@@ -147,7 +117,7 @@ void peer_online(struct message *msg)
 	msg->type = MSG_PEER_INF;
 	pr = peer_inlist(msg);
 	
-	fd = get_sockfd(FD_SENDMSG, pr);
+	fd = getsockfd(FD_SENDMSG, pr);
 	send(fd, &self->id, sizeof(struct base_inf), 0);
 	shutdown(fd, SHUT_RDWR)
 }
@@ -159,7 +129,7 @@ void recv_msg()
 	pthread_attr_init(&attr);
 	pthread_setdetachstate(&addr, PTHREAD_CREATE_DETACHED);
 	
-	int fd = get_sockfd(FD_GETMSG, NULL);	
+	int fd = getsockfd(FD_GETMSG, NULL);	
 	while (1) {
 		
 		int size = recv(fd, &msg, sizeof(struct message), 0);

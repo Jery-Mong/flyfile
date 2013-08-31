@@ -8,9 +8,14 @@ void global_init()
 {
 	self = (struct host *)malloc(sizeof(struct host));
 	memset(self, 0, sizeof(struct host));
-	int name[32];
-	gethostname()
 	
+	gethostname(self->id.name, 32);
+	self->id.ip = get_local_ip();
+
+	if (!self->id.ip) {
+		printf("error: you seem to have not connected to LAN please check you network\n");
+		exit(0);	
+	}
 
 	peer_list = (list_t *)malloc(sizeof(list_t));
 	list_init(peer_list);
