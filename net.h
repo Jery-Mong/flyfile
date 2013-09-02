@@ -1,6 +1,9 @@
 #ifndef __NET_H
 #define __NET_H
 
+#include "message.h"
+#include "local.h"
+
 #define MSG_PORT 3333
 #define DATA_PORT 3334
 
@@ -13,7 +16,11 @@ enum sockfd_type {
 	FD_SENDMSG,
 };
 
-
+void *recv_msg(void *);
+void peer_online(struct message *);
+in_addr_t get_local_ip();
+void bcast_online();
+int getsockfd(int, struct peer *);
 
 
 #endif

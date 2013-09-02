@@ -1,28 +1,28 @@
+#include "net.h"
+#include "message.h"
+#include "local.h"
 
 
-
-void msg_handler(void *data)
+void *msg_handler(void *data)
 {
-	struct *msg = (struct message *)data;
+	struct message *msg = (struct message *)data;
 
 	switch (msg->type) {
-	case MSG_ONLINE:
+	case MSG_OFFLINE:
 		peer_outlist(msg) ;
 	case MSG_ONLINE:
 		peer_online(msg);
 		break;
 	case MSG_FILE_RQST:
 	case MSG_CHAT_RQST:
-		respond_rqst(msg);
+//		respond_rqst(msg);
 		break;
 	case MSG_FILE_START:
-		receive_file(msg);
+		//	receive_file(msg);
 		break;
 	case MSG_FILE_ACK:
-		handle_ack(msg);
-		break;
-	case MSG_CHAT:
-		chat_with_peer(msg);
+	case MSG_CHAT_ACK:
+		handle_answer(msg);
 		break;
 	case MSG_PEER_INF:
 		peer_inlist(msg);
@@ -30,4 +30,6 @@ void msg_handler(void *data)
 	default:
 		break;
 	}
+	return NULL;
 }
+
