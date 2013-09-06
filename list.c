@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+
 #include "list.h"
 
 void list_init(list_t *lst)
@@ -8,6 +9,16 @@ void list_init(list_t *lst)
 	lst->head = (node_t *)malloc(sizeof(node_t));
 	lst->head->next = lst->head;
 	lst->head->prev  = lst->head;
+}
+void list_destroy(list_t *lst)
+{
+	node_t *iter;
+	for_each_node(iter, lst) {
+		free(iter->data);
+		free(iter);
+	}
+
+	free(lst->head);
 }
 
 

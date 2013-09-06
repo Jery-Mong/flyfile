@@ -24,6 +24,7 @@ typedef struct list list_t;
 #define list_is_tail(list, node) (((list)->head->prev == node) ? 1 : 0)
 
 void list_init(list_t *);
+void list_destroy(list_t *);
 void *list_del_next(list_t *, void *);
 void *list_del_after(list_t *, void *);
 int list_insert_next(list_t *, void *, void *);

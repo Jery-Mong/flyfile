@@ -30,8 +30,8 @@ int getsockfd(int type, struct peer *pr)
 	case FD_BROADCAST:
 	case FD_SENDMSG:
 		addr.sin_port = htons(MSG_PORT);
-		
 		fd = socket(AF_INET, SOCK_DGRAM, 0);
+		
 		if (type == FD_BROADCAST) {
 			addr.sin_addr.s_addr = INADDR_BROADCAST;
 			int broadcast = 1; 
@@ -39,10 +39,11 @@ int getsockfd(int type, struct peer *pr)
 		} else {
 			addr.sin_addr.s_addr = pr->id.ip;
 		}
+		
 		if (connect(fd, (struct sockaddr *)&addr, sizeof(addr)) < 0)
 			return -1;
-		else
-			return fd;
+		
+		return fd;
 		
 	case FD_DATACLIENT:
 		
@@ -54,8 +55,8 @@ int getsockfd(int type, struct peer *pr)
 		
 		if (connect(fd, (struct sockaddr *)&addr, sizeof(addr)) < 0)
 			return -1;
-		else
-			return fd;
+		
+		return fd;
 		
 	case FD_DATASERVER:
 		break;
@@ -64,17 +65,27 @@ int getsockfd(int type, struct peer *pr)
 	}
 	return -1;
 }
-void bcast_online()
+
+void bcast_status(int status)
 {
 	int fd = getsockfd(FD_BROADCAST, NULL);
 
 	struct message bmsg;
-	bmsg.type = MSG_ONLINE;
-	memcpy(&bmsg.m_id, &self->id, sizeof(struct base_inf));
+	bmsg.type = status;
+	memcpy(&bmsg.id, &self->id, sizeof(struct base_inf));
 	
 	send(fd, &bmsg, sizeof(struct message), 0);
 
-	shutdown(fd, SHUT_RDWR);
+	close(fd);
+	
+}
+void bcast_online()
+{
+	bcast_status(MSG_ONLINE);
+}
+void bcast_offline()
+{
+	bcast_status(MSG_OFFLINE);
 }
 in_addr_t get_local_ip()
 {
@@ -107,48 +118,49 @@ in_addr_t get_local_ip()
 			ifr++;
 	}
 
-	shutdown(fd, SHUT_RDWR);
+	close(fd);
 	return 0;
 }
 void peer_online(struct message *msg)
-{
-	if (msg->type != MSG_ONLINE)
+{	
+	struct peer *pr = peer_inlist(msg);
+
+	if (pr == NULL)
 		return;
-	int fd;
-	struct peer *pr;
-	msg->type = MSG_PEER_INF;
-	pr = peer_inlist(msg);	
-
-	fd = getsockfd(FD_SENDMSG, pr);
-
-	msg->type = MSG_PEER_INF;
-	memcpy(&msg->m_id, &self->id, sizeof(struct base_inf));
+		
+	struct message dupmsg;
+	dupmsg.type = MSG_PEER_INF;
+	memcpy(&dupmsg.id, &self->id, sizeof(struct base_inf));
+		
+	int fd = getsockfd(FD_SENDMSG, pr);
 	
-	send(fd, msg, sizeof(struct message), 0);
-
-	shutdown(fd, SHUT_RDWR);
-	free(msg);
+	sleep(1);
+	send(fd, &dupmsg, sizeof(struct message), 0);
+	send(fd, &dupmsg, sizeof(struct message), 0);
+	
+	close(fd);
 }
 void *recv_msg(void *data)
 {
 	struct message msg;
+	struct message *dupmsg;
 	pthread_t tid;
 	
 	pthread_attr_t attr;
 	pthread_attr_init(&attr);
 	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 	
-	int fd = getsockfd(FD_GETMSG, NULL);	
+	int fd = getsockfd(FD_GETMSG, NULL);
+	
 	while (1) {
-		
 		recv(fd, &msg, sizeof(struct message), 0);
 
-		printf("get a message from: %s\n", msg.m_id.name);
-		
-		if (msg.m_id.ip == self->id.ip)
+		if (msg.id.ip == self->id.ip)
 			continue;
-
-		struct message *dupmsg = (struct message *)malloc(sizeof(struct message));
+		
+		printf("get a message from :%s type:%d\n", msg.id.name, msg.type);
+		
+		dupmsg = (struct message *)malloc(sizeof(struct message));
 		memcpy(dupmsg, &msg, sizeof(struct message));
 		
 		pthread_create(&tid, &attr, msg_handler, dupmsg);

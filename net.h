@@ -20,6 +20,7 @@ void *recv_msg(void *);
 void peer_online(struct message *);
 in_addr_t get_local_ip();
 void bcast_online();
+void bcast_offline();
 int getsockfd(int, struct peer *);
 
 

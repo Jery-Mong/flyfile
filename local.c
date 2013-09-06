@@ -8,7 +8,7 @@
 #include "local.h"
 #include "common.h"
 #include "net.h"
-//#include "interface.h"
+#include "interface.h"
 
 void global_init()
 {
@@ -29,7 +29,7 @@ void global_init()
 	peer_list = (list_t *)malloc(sizeof(list_t));
 	list_init(peer_list);
 
-	//interface_init();
+	winds_init();
 }
 
 struct peer *getpeerbyid(struct base_inf *id)
@@ -44,17 +44,16 @@ struct peer *getpeerbyid(struct base_inf *id)
 
 
 struct peer *peer_inlist(struct message *msg)
-{
-	if (msg->type != MSG_PEER_INF)
-		return NULL;
-	
+{	
 	struct peer *pr;
 
-	if ((pr = getpeerbyid(&msg->m_id)) != NULL) /* the peer is already in the peer_list */
+	if ((pr = getpeerbyid(&msg->id)) == NULL) /* the peer is already in the peer_list */
 		return pr;
-	
+
+	printf("put peer(%s) in list\n", pr->id.name);
 	pr = (struct peer *)malloc(sizeof(struct peer));
 	memset(pr, 0, sizeof(struct peer));
+	memcpy(&pr->id, &msg->id, sizeof(struct base_inf));
 	
 	list_insert_tail(peer_list, pr);
 
@@ -64,7 +63,7 @@ struct peer *peer_inlist(struct message *msg)
 
 void peer_outlist(struct message *msg)
 {
-	struct peer *pr = getpeerbyid(&msg->m_id);
+	struct peer *pr = getpeerbyid(&msg->id);
 
 	if (pr == NULL)
 		return;
@@ -77,7 +76,7 @@ void respond_rqst(struct message *msg)
 	struct peer *pr;
 	int rsp;
 
-	if ((pr = getpeerbyid(&msg->m_id)) == NULL)
+	if ((pr = getpeerbyid(&msg->id)) == NULL)
 		return;
 
 	/* if there is already the same as request type mission,

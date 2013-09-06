@@ -19,18 +19,19 @@ enum {
 };
 struct message {
 	int type;
+	struct base_inf id;
 
 	union {
-		struct base_inf id;
 		int m_answer;
+		struct file_inf m_file;
+		char m_news[64];
 
 	} mdata;
 };
-#define m_id mdata.id
 #define answer mdata.m_answer
+#define ms_file mdata.m_file
+#define ms_news mdata.m_news
 
 void *msg_handler(void *);
-
-
 
 #endif

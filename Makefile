@@ -1,7 +1,8 @@
-input=main.c local.c net.c message.c list.c
+input=main.c local.c net.c message.c list.c interface.c cmd.c
 output=flyfile
 
-CFLAGS=-Wall -pthread
+##CFLAGS=-std=gnu99 -Wall -pthread
+CFLAGS=-Wall -pthread -lncurses -lpanel
 
 all:$(output)
 

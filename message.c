@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include "net.h"
 #include "message.h"
 #include "local.h"
@@ -10,6 +11,7 @@ void *msg_handler(void *data)
 	switch (msg->type) {
 	case MSG_OFFLINE:
 		peer_outlist(msg) ;
+		break;
 	case MSG_ONLINE:
 		peer_online(msg);
 		break;
