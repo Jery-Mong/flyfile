@@ -158,8 +158,6 @@ void *recv_msg(void *data)
 		if (msg.id.ip == self->id.ip)
 			continue;
 		
-		printf("get a message from :%s type:%d\n", msg.id.name, msg.type);
-		
 		dupmsg = (struct message *)malloc(sizeof(struct message));
 		memcpy(dupmsg, &msg, sizeof(struct message));
 		

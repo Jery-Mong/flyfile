@@ -20,8 +20,8 @@ void global_init()
 	
 
 	if (!self->id.ip) {
-		printf("error: you seem to have not connected to LAN please check you network\n");
-		exit(-1);	
+		printf("error: you don't seem to have connected to LAN, please check your network\n");
+		exit(1);	
 	}
 	self->chmisn = NULL;
 	self->fimisn = NULL;
@@ -47,10 +47,9 @@ struct peer *peer_inlist(struct message *msg)
 {	
 	struct peer *pr;
 
-	if ((pr = getpeerbyid(&msg->id)) == NULL) /* the peer is already in the peer_list */
+	if ((pr = getpeerbyid(&msg->id)) != NULL) /* the peer is already in the peer_list */
 		return pr;
-
-	printf("put peer(%s) in list\n", pr->id.name);
+	
 	pr = (struct peer *)malloc(sizeof(struct peer));
 	memset(pr, 0, sizeof(struct peer));
 	memcpy(&pr->id, &msg->id, sizeof(struct base_inf));
@@ -67,10 +66,11 @@ void peer_outlist(struct message *msg)
 
 	if (pr == NULL)
 		return;
-	
 	list_del_node(peer_list, pr);
+	
+	free(pr);
 }
-#if 0
+
 void respond_rqst(struct message *msg)
 {
 	struct peer *pr;
@@ -86,7 +86,7 @@ void respond_rqst(struct message *msg)
 	    (msg->type == MSG_CHAT_RQST && self->chmisn != NULL)) {
 		rsp = RSP_NO;
 	} else {
-		rsp = popwind_getrsp(msg);
+		rsp = popwin_getrsp(msg);
 		if (msg->type == MSG_FILE_RQST)
 			pr->rqst_file_stat = rsp;
 		else
@@ -109,7 +109,6 @@ void respond_rqst(struct message *msg)
 	shutdown(fd, SHUT_RDWR);
 	free(msg);
 }
-#endif
 
 void handle_answer(struct message *msg)
 {

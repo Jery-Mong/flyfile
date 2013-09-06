@@ -74,6 +74,26 @@ void *list_del_after(list_t *lst, void *data)
 	lst->node_cnt--;
 	return tmp;
 }
+int list_del_node(list_t *lst, void *data)
+{
+	node_t *iter;
+	
+	if (data == NULL || lst->node_cnt == 0)
+		return -1;
+	
+	for_each_node(iter, lst) {
+		if (iter->data == data) {
+			iter->prev->next = iter->next;
+			iter->next->prev = iter->prev;
+			
+			lst->node_cnt--;
+			free(iter);
+			return 0;
+		}
+	}
+	return -1;
+}
+
 int list_insert_next(list_t *lst, void *tag_data, void *inst_data)
 {	
 	if (inst_data == NULL)
@@ -135,23 +155,6 @@ int list_insert_after(list_t *lst, void *tag_data, void *inst_data)
 	lst->node_cnt++;
 	return 0;
 }
-int list_del_node(list_t *lst, void *data)
-{
-	node_t *iter;
-	
-	if (data == NULL || lst->node_cnt == 0)
-		return -1;
-	
-	for_each_node(iter, lst) {
-		if (iter->data == data) {
-			list_del_next(lst, iter->prev->data);
-			lst->node_cnt--;
-			free(iter);
-			return 0;
-		}
-	}
-	return -1;
-}
 
 int list_insert_tail(list_t *lst, void *data)
 {
@@ -194,36 +197,3 @@ int list_sort_insert(list_t *lst, void *data, int (*cmp_fn)(void *d1, void *d2))
 	}
 	return 0;
 }
-
-/*
-int main()
-{
-	list_t list;
-
-	list_init(&list);
-
-	int a = 1;
-	int b = 2;
-	int c = 3;
-	int d = 4;
-	int e = 5;
-
-	list_insert_head(&list, &a);
-	list_insert_head(&list, &b);
-	list_insert_head(&list, &c);
-	list_insert_tail(&list, &d);
-	list_insert_after(&list, &a, &e);
-
-	printf("%d ", *(int *)(list_del_after(&list, &e)));
-	printf("\n");
-	
-	node_t *iter;
-	for_each_node(iter, &list) {
-		printf("%d ", *(int *)(iter->data));
-	}
-
-//	printf("%d ", *(int *)(list_del_tail(&list)));
-	
-	printf("\n");
-}
-*/
