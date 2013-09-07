@@ -18,13 +18,10 @@ void global_init()
 	gethostname(self->id.name, 32);
 	self->id.ip = get_local_ip();
 	
-
 	if (!self->id.ip) {
 		printf("error: you don't seem to have connected to LAN, please check your network\n");
 		exit(1);	
 	}
-	self->chmisn = NULL;
-	self->fimisn = NULL;
 
 	peer_list = (list_t *)malloc(sizeof(list_t));
 	list_init(peer_list);
@@ -37,6 +34,16 @@ struct peer *getpeerbyid(struct base_inf *id)
 	node_t *iter;
 	for_each_node(iter, peer_list) {
 		if (!memcmp(id, iter->data, sizeof(struct base_inf)))
+			return iter->data;
+	}
+	return NULL;
+}
+
+struct peer* getpeerbyidnum(int idnum)
+{
+	node_t *iter;
+	for_each_node(iter, peer_list) {
+		if (iter->idnum == idnum)
 			return iter->data;
 	}
 	return NULL;
@@ -79,20 +86,7 @@ void respond_rqst(struct message *msg)
 	if ((pr = getpeerbyid(&msg->id)) == NULL)
 		return;
 
-	/* if there is already the same as request type mission,
-	 * auto say no to request peer
-	*/
-	if ((msg->type == MSG_FILE_RQST && self->fimisn != NULL) ||
-	    (msg->type == MSG_CHAT_RQST && self->chmisn != NULL)) {
-		rsp = RSP_NO;
-	} else {
-		rsp = popwin_getrsp(msg);
-		if (msg->type == MSG_FILE_RQST)
-			pr->rqst_file_stat = rsp;
-		else
-			pr->rqst_chat_stat = rsp;
-	}
-	
+	rsp = popwin_getrsp(msg);	
 
 	memset(msg, 0, sizeof(struct message));
 	
@@ -105,34 +99,62 @@ void respond_rqst(struct message *msg)
 
 	int fd = getsockfd(FD_SENDMSG, pr);
 	send(fd, &msg, sizeof(struct message), 0);
-
-	shutdown(fd, SHUT_RDWR);
+	close(fd);
 	free(msg);
+
+	if (rsp == RSP_NO) {
+		m_printf("\nreject\n");
+		return;
+	}
+
+	if (msg->type == MSG_CHAT_RQST)
+		return;
+
+	self->file_status = FILE_BUSY;
+	
+	fd = getsockfd(FD_DATA_RECV, pr);
+	recv_file(fd, &msg->msfile);
+	
+	self->file_status = FILE_AVAL;	
 }
 
 void handle_answer(struct message *msg)
 {
-	struct mission *misn;
-	
-	if (msg->type == MSG_CHAT_ACK)
-		misn = self->chmisn;
+	struct peer *pr;
+
+	if ((pr = getpeerbyid(&msg->id)) = NULL)
+		return;
+
+	if (msg->answer == RSP_YES)
+		pr->rsq_stat = 3; /* 11 */
 	else
-		misn = self->fimisn;
-	
-	if (msg->answer == RSP_NO)
-		misn->status = DEAD;
-	else
-		misn->status = ALIVE;
+		pr->rsq_stat = 2; /* 10 */
 }
 
-void create_mission(int type)
-{
-	struct mission *misn = (struct mission *)malloc(sizeof(struct mission));
-	memset(misn, 0, sizeof(struct mission));
 
-	misn->type = type;
-	if (type == FILE_TRANS) {
-		self->fimisn = misn; 
-	} else
-		self->chmisn = misn;
+void print_chat_comment(char *comment)
+{
+	time_t tt;
+        tt = time(NULL);	
+
+	m_attron(A_BOLD);
+	m_printf("%s", ctime(&tt) + 11);
+	m_printf("%s", msg->mschat);
+	m_attroff(A_BOLD);
+}
+
+void chat(struct message *msg)
+{
+	struct peer *pr;
+
+	if ((pr = getpeerbyid(&msg->id)) == NULL)
+		goto out;
+
+	if (pr->rsq_stat == RSP_NO)
+		goto out;
+	
+	print_chat_comment(msg->mschat);
+
+out:
+	free(msg);
 }

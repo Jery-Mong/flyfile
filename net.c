@@ -22,7 +22,7 @@ int getsockfd(int type, struct peer *pr)
 	switch (type) {
 	case FD_GETMSG:
 		addr.sin_port = htons(MSG_PORT);
-		addr.sin_addr.s_addr = INADDR_ANY;
+		addr.sin_addr.s_addr = self->id.ip;
 		fd = socket(AF_INET, SOCK_DGRAM, 0);
 		bind(fd, (struct sockaddr *)&addr, sizeof(addr));
 		
@@ -45,10 +45,10 @@ int getsockfd(int type, struct peer *pr)
 		
 		return fd;
 		
-	case FD_DATACLIENT:
-		
+	case FD_DATAC_SEND:
 		if (pr == NULL)
 			return -1;
+		
 		addr.sin_port = htons(DATA_PORT);
 		addr.sin_addr.s_addr = pr->id.ip;
 		fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -58,8 +58,17 @@ int getsockfd(int type, struct peer *pr)
 		
 		return fd;
 		
-	case FD_DATASERVER:
-		break;
+	case FD_DATA_RECV:
+		if (pr == NULL)
+			return -1;
+		
+		addr.sin_port = htons(DATA_PORT);
+		addr.sin_addr.s_addr = self->id.ip;
+		fd = socket(AF_INET, SOCK_STREAM, 0);
+		bind(fd, (struct sockaddr *)&addr, sizeof(addr));
+		listen(fd, 1);
+		return accept(fd, NULL, NULL);
+		
 	default:
 		break;	
 	}

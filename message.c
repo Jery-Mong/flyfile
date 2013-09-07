@@ -17,10 +17,7 @@ void *msg_handler(void *data)
 		break;
 	case MSG_FILE_RQST:
 	case MSG_CHAT_RQST:
-//		respond_rqst(msg);
-		break;
-	case MSG_FILE_START:
-		//	receive_file(msg);
+		respond_rqst(msg);
 		break;
 	case MSG_FILE_ACK:
 	case MSG_CHAT_ACK:
@@ -29,6 +26,8 @@ void *msg_handler(void *data)
 	case MSG_PEER_INF:
 		peer_inlist(msg);
 		break;
+	case MSG_CHAT:
+		chat();
 	default:
 		break;
 	}

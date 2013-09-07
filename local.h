@@ -14,27 +14,28 @@ enum mission_status {
 	ALIVE,
 	
 };
+/*
 struct mission {
 	int type;
 	pthread_t tid;
 	int status;
 };
-
-
+*/
 struct host {
 	struct base_inf id;
 	pthread_mutex_t lock;
-	struct mission *cur_misn[2];
+	int file_status;
 	
 };
 #define fimisn cur_misn[0]
 #define chmisn cur_misn[1]
 
 struct peer {
+	int idnum;
 	struct base_inf id;
-	int rqst_file_stat;
-	int rqst_chat_stat;
-	int fd;
+	volatile int rsq_stat;
+	int cfd;
+	int ffd;
 };
 
 void global_init();

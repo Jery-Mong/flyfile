@@ -2,6 +2,8 @@
 #include <string.h>
 #include <pthread.h>
 #include <arpa/inet.h>
+#include <unistd.h>
+#include <pthread.h>
 
 #include "interface.h"
 #include "common.h"
@@ -9,7 +11,7 @@
 #include "net.h"
 #include "cmd.h"
 
-int cmd_quit(void *data)
+int cmd_quit(void **data)
 {
 	bcast_offline();
 	list_destroy(peer_list);
@@ -17,13 +19,70 @@ int cmd_quit(void *data)
 	exit(0);
 }
 
-int cmd_send(void *data)
+int wait_file_ack(struct peer *pr)
 {
-
+	m_printf("\n");
+	for (i = 5; i > 0; i--) {
+		m_printf("%d\t", i);
+		if (pr->rsq_stat == 3) {
+			pr->rsq_stat = 0;
+			return 1;
+		} else if (pr->rsq_stat == 2) {
+			pr->rsq_stat = 0;
+			return 0;
+		}
+		sleep(1);
+	}
 	return 0;
 }
 
-int cmd_printpr(void *data)
+int cmd_send(void **data)
+{
+	char **cmd = (char **)data;
+
+	if (cmd[1] == NULL)
+		goto err1;
+		
+	struct *pr = getpeerbyidnum(*cmd[1]);
+	if (pr == NULL)
+		goto err1;
+
+	struct stat st;
+	if (!stat(cmd[2], &st))
+		goto err1;
+
+	struct message msg;
+	msg.type = MSG_FILE_RQST;
+	memcpy(&msg.id, &self->id, sizeof(struct base_inf));
+
+	strcpy(msg.ms_file.fname, cmd[2]);
+	msg.msfile.fsize = st.st_size;
+
+	int fd = getsockfd(FD_SENDMSG, pr);
+	send(fd, &msg, sizeof(msg), 0);
+	close(fd);
+
+	if (wait_file_ack(pr) == RSP_NO)
+		goto out;
+
+	fd = getsockfd(FD_DATA_SEND, pr);
+
+	if (fd < 0)
+		goto out;
+
+	self->file_status = FILE_BUSY;
+	send_file(fd, cmd[2]);
+
+	self->file_status = FILE_AVAL;
+err:
+	m_printf("Invalid");
+	return 0;
+out:
+	m_printf("rejected");
+	return -1;
+}
+
+int cmd_printpr(void **data)
 {
 	node_t *iter;
 	int i = 0;
@@ -47,6 +106,7 @@ struct cmd cmd_list[] = {
 		.cmd_func = cmd_printpr,
 	}
 };
+
 
 /* the command is blankspace-terminated */
 static int is_cmd(const char *cmd)

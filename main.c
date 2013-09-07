@@ -2,7 +2,7 @@
  * Global Note:
  *
  * 1.the localhost'name is "self"
- * 2.There can be two missions at most at time same time, and they can not are the same.No or only one mission are allowed. 
+ * 2.There can be only one file mission, while chat mission doesn't have limitation.
  * 3.there are two ports, one is for receiving message based on UDP, the other  is for file or chat data transmission based on TCP. 
  */
 #include <pthread.h>

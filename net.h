@@ -10,12 +10,16 @@
 
 enum sockfd_type {
 	FD_BROADCAST,
-	FD_DATACLIENT,
-	FD_DATASERVER,
+	FD_DATA_SEND,
+	FD_DATA_RECV,
 	FD_GETMSG,
 	FD_SENDMSG,
 };
 
+enum {
+	FILE_BUSY,
+	FILE_AVAL,
+};
 void *recv_msg(void *);
 void peer_online(struct message *);
 in_addr_t get_local_ip();
