@@ -1,8 +1,9 @@
 #include <stdio.h>
+
 #include "net.h"
 #include "message.h"
 #include "local.h"
-
+#include "interface.h"
 
 void *msg_handler(void *data)
 {
@@ -21,13 +22,13 @@ void *msg_handler(void *data)
 		break;
 	case MSG_FILE_ACK:
 	case MSG_CHAT_ACK:
-		handle_answer(msg);
+		handle_ack(msg);
 		break;
 	case MSG_PEER_INF:
 		peer_inlist(msg);
 		break;
 	case MSG_CHAT:
-		chat();
+		chat_get_comment(msg);
 	default:
 		break;
 	}

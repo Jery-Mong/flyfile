@@ -9,6 +9,9 @@
 #include "common.h"
 #include "net.h"
 #include "interface.h"
+#include "transmit.h"
+
+static int his_online = 0;
 
 void global_init()
 {
@@ -16,7 +19,9 @@ void global_init()
 	memset(self, 0, sizeof(struct host));
 	
 	gethostname(self->id.name, 32);
-	self->id.ip = get_local_ip();
+//	self->id.ip = get_local_ip();
+	/* get local ip and broadcast ip */
+	get_local_ipinf(&(self->id.ip), &self->bcastaddr);
 	
 	if (!self->id.ip) {
 		printf("error: you don't seem to have connected to LAN, please check your network\n");
@@ -39,16 +44,16 @@ struct peer *getpeerbyid(struct base_inf *id)
 	return NULL;
 }
 
-struct peer* getpeerbyidnum(int idnum)
+struct peer *getpeerbyidnum(char *idnum)
 {
 	node_t *iter;
+	
 	for_each_node(iter, peer_list) {
-		if (iter->idnum == idnum)
+		if (((struct peer *)(iter->data))->idnum == atoi(idnum))
 			return iter->data;
 	}
 	return NULL;
 }
-
 
 struct peer *peer_inlist(struct message *msg)
 {	
@@ -56,10 +61,12 @@ struct peer *peer_inlist(struct message *msg)
 
 	if ((pr = getpeerbyid(&msg->id)) != NULL) /* the peer is already in the peer_list */
 		return pr;
+
 	
 	pr = (struct peer *)malloc(sizeof(struct peer));
 	memset(pr, 0, sizeof(struct peer));
 	memcpy(&pr->id, &msg->id, sizeof(struct base_inf));
+	pr->idnum = his_online++;
 	
 	list_insert_tail(peer_list, pr);
 
@@ -102,13 +109,15 @@ void respond_rqst(struct message *msg)
 	close(fd);
 	free(msg);
 
+	if (msg->type == MSG_CHAT_RQST) {
+		pr->chat_rsq_stat = rsp;
+		return;
+	}
 	if (rsp == RSP_NO) {
 		m_printf("\nreject\n");
 		return;
 	}
 
-	if (msg->type == MSG_CHAT_RQST)
-		return;
 
 	self->file_status = FILE_BUSY;
 	
@@ -118,39 +127,32 @@ void respond_rqst(struct message *msg)
 	self->file_status = FILE_AVAL;	
 }
 
-void handle_answer(struct message *msg)
+void handle_ack(struct message *msg)
 {
 	struct peer *pr;
 
-	if ((pr = getpeerbyid(&msg->id)) = NULL)
+	if ((pr = getpeerbyid(&msg->id)) == NULL)
 		return;
-
-	if (msg->answer == RSP_YES)
-		pr->rsq_stat = 3; /* 11 */
-	else
-		pr->rsq_stat = 2; /* 10 */
+	
+	if (msg->type == MSG_FILE_ACK) {
+		if (msg->answer == RSP_YES)
+			pr->file_rsq_stat = 3; /* 11 */
+		else
+			pr->file_rsq_stat = 2; /* 10 */
+	} else {
+		pr->chat_rsq_stat = msg->answer;
+	}
 }
 
 
-void print_chat_comment(char *comment)
-{
-	time_t tt;
-        tt = time(NULL);	
-
-	m_attron(A_BOLD);
-	m_printf("%s", ctime(&tt) + 11);
-	m_printf("%s", msg->mschat);
-	m_attroff(A_BOLD);
-}
-
-void chat(struct message *msg)
+void chat_get_comment(struct message *msg)
 {
 	struct peer *pr;
 
 	if ((pr = getpeerbyid(&msg->id)) == NULL)
 		goto out;
 
-	if (pr->rsq_stat == RSP_NO)
+	if (pr->chat_rsq_stat == RSP_NO)
 		goto out;
 	
 	print_chat_comment(msg->mschat);

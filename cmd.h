@@ -2,8 +2,8 @@
 #define __CMD_H
 
 struct cmd {
-	char name[8];
-	int (*cmd_func)(void *);
+	char *name;
+	int (*cmd_func)(char **);
 };
 
 extern char **cmdstr_to_list(char *);

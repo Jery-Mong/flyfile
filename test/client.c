@@ -16,7 +16,8 @@ int main()
 	server_addr.sin_port = htons(PORT);
 	
 #ifdef DO_UDP
-	server_addr.sin_addr.s_addr = INADDR_BROADCAST;
+	//server_addr.sin_addr.s_addr = INADDR_BROADCAST;
+	server_addr.sin_addr.s_addr = inet_addr("192.168.1.255");
 #else
 	server_addr.sin_addr.s_addr = inet_addr("192.168.1.2");
 #endif

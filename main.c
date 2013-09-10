@@ -3,7 +3,7 @@
  *
  * 1.the localhost'name is "self"
  * 2.There can be only one file mission, while chat mission doesn't have limitation.
- * 3.there are two ports, one is for receiving message based on UDP, the other  is for file or chat data transmission based on TCP. 
+ * 3.there are two ports, one is for receiving message based on UDP, the other  is for file transmission based on TCP. 
  */
 #include <pthread.h>
 #include <unistd.h>
@@ -14,7 +14,6 @@
 
 list_t *peer_list;
 struct host *self;
-
 
 int main()
 {

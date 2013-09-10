@@ -11,7 +11,7 @@
 #include "cmd.h"
 #include "net.h"
 #include "list.h"
-#include "interface.h"
+//#include "interface.h"
 
 PANEL *pn_inf;
 PANEL *pn_main;
@@ -62,7 +62,7 @@ void m_printf(char *fmt, ...)
 	update_panels();
 	doupdate();
 }
-
+/*
 void m_attron(int attr)
 {
 	WINDOW *win = panel_window(pn_main);
@@ -70,9 +70,10 @@ void m_attron(int attr)
 }
 void m_attrof(int attr)
 {
-	WINDOW *win = panel_window(pn_main);
+WINDOW *win = panel_window(pn_main);
 	wattroff(win, attr);
 }
+*/
 int popwin_getrsp(void *data)
 {
 	int i;
@@ -103,10 +104,10 @@ int popwin_getrsp(void *data)
 
 		waddstr(win, "\nName: ");
 		wattron(win, A_UNDERLINE);
-		waddstr(win,msg->ms_file.fname);
+		waddstr(win,msg->msfile.fname);
 		wattroff(win, A_UNDERLINE);
 
-		int size = msg->ms_file.fsize;
+		int size = msg->msfile.fsize;
 
 		waddstr(win, "\nSize :");
 		wattron(win, A_UNDERLINE);
@@ -156,12 +157,11 @@ void* show_progress(void *data)
 		waddch(win, '-');
 	
 	while (*prgs <= 100) {
-
-		wmove(win, 0, 0);		
-		wprintw(win, "%d%\n", *prgs);
-		
+		wmove(win, 1, 0);		
 		for (i = 0; i < *prgs / (100 / POPWIN_X); i++)
-			waddch(win, ' ' | A_UNDERLINE);
+			waddch(win, ' ' | A_REVERSE);
+		wmove(win, 1, POPWIN_X / 2);
+		wprintw(win, "%d%", *prgs);
 		
 		update_panels();
 		doupdate();
@@ -199,28 +199,16 @@ void winds_quit()
 	del_panel(pn_prgs);
 	endwin();
 }
-/*
-int main()
+
+void print_chat_comment(char *comment)
 {
-	face_init();
-
-	pthread_t tid;
-	int prgs = 0;
-
-	struct message msg;
-
-	msg.type = MSG_FILE_RQST;
-	memcpy(msg.id.name, "mj", 3);
-	memcpy(msg.ms_file.fname, "1.pdf", 6);
-	msg.ms_file.fsize = 1024 * 1024;
-
+	WINDOW *win = panel_window(pn_main);
+	time_t tt;
 	
-	popwin_getrsp(&msg);
-
-	main_wind();
-	del_panel(pn_inf);
-	del_panel(pn_main);
-
-	endwin();
+        tt = time(NULL);
+	wattron(win, A_BOLD);
+	
+	m_printf("%s\n%s\n", ctime(&tt) + 11, comment);
+	
+	wattroff(win, A_BOLD);
 }
-*/

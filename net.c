@@ -12,9 +12,12 @@
 
 #include "common.h"
 #include "net.h"
+#include "message.h"
+#include "local.h"
 
-int getsockfd(int type, struct peer *pr)
+int getsockfd(int type, void *data)
 {
+	struct peer *pr = (struct peer *)data;
 	int fd;
 	struct sockaddr_in addr;
 	addr.sin_family = AF_INET;
@@ -33,7 +36,7 @@ int getsockfd(int type, struct peer *pr)
 		fd = socket(AF_INET, SOCK_DGRAM, 0);
 		
 		if (type == FD_BROADCAST) {
-			addr.sin_addr.s_addr = INADDR_BROADCAST;
+			addr.sin_addr.s_addr = self->bcastaddr;
 			int broadcast = 1; 
 			setsockopt(fd, SOL_SOCKET, SO_BROADCAST, &broadcast, sizeof(int));
 		} else {
@@ -45,7 +48,7 @@ int getsockfd(int type, struct peer *pr)
 		
 		return fd;
 		
-	case FD_DATAC_SEND:
+	case FD_DATA_SEND:
 		if (pr == NULL)
 			return -1;
 		
@@ -96,32 +99,32 @@ void bcast_offline()
 {
 	bcast_status(MSG_OFFLINE);
 }
+/*
 in_addr_t get_local_ip()
 {
-
 	int fd;
 	in_addr_t ip;
 	struct sockaddr_in *addr;
 	in_addr_t mask = inet_addr("192.168.0.0");
 	
-	struct ifreq *ifr;
 	struct ifconf ifc;
+	struct ifreq *ifr;
 	
 	ifc.ifc_len = sizeof(struct ifreq) * 4;
-	ifc.ifc_buf = (struct freq *)malloc(ifc.ifc_len);
+	ifc.ifc_buf = (struct ifreq *)malloc(ifc.ifc_len);
 	
 	fd = socket(AF_INET, SOCK_DGRAM, 0);
 	
 	if (ioctl(fd, SIOCGIFCONF, &ifc) < 0)
 		perror("ioctl");
 
-	int i = ifc.ifc_len / sizeof(struct ifreq);
+		int i = ifc.ifc_len / sizeof(struct ifreq);
 	
 	for (ifr = ifc.ifc_req; i > 0; i-- ) {
 		addr = (struct sockaddr_in *)&ifr->ifr_addr;
 		ip = addr->sin_addr.s_addr;;
 		
-		if ((ip & 0x0000ffff) == mask)
+		if ((ip & ~mak) == 0)
 			return ip;
 		else
 			ifr++;
@@ -130,8 +133,45 @@ in_addr_t get_local_ip()
 	close(fd);
 	return 0;
 }
-void peer_online(struct message *msg)
-{	
+*/
+void get_local_ipinf(void *lip, void *bip)
+{
+	int fd;
+	in_addr_t ip;
+	struct sockaddr_in *addr;
+	in_addr_t mask = inet_addr("192.168.0.0");
+
+	struct ifconf ifc;
+	struct ifreq *ifr;
+
+	ifc.ifc_len = sizeof(struct ifreq) * 4;
+	ifc.ifc_req = (struct ifreq *)malloc(ifc.ifc_len);	
+
+	fd = socket(AF_INET, SOCK_DGRAM, 0);
+	if (ioctl(fd, SIOCGIFCONF, &ifc) < 0)
+		perror("ioctl");
+
+	int i = ifc.ifc_len / sizeof(struct ifreq);
+	
+	for (ifr = ifc.ifc_req; i > 0; i--) {
+		addr = (struct sockaddr_in *)&ifr->ifr_addr;
+		ip = addr->sin_addr.s_addr;
+		
+		if ((ip & mask) == mask) {
+			*(in_addr_t *)lip = ip;
+
+			ioctl(fd, SIOCGIFBRDADDR, ifr);
+			*(in_addr_t *)bip = (((struct sockaddr_in *)&ifr->ifr_addr)->sin_addr).s_addr;
+			return;
+		}
+		
+		ifr++;
+	}
+	close(fd);
+}
+void peer_online(void *data)
+{
+	struct message *msg = (struct message *)data;
 	struct peer *pr = peer_inlist(msg);
 
 	if (pr == NULL)
