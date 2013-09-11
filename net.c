@@ -14,6 +14,7 @@
 #include "net.h"
 #include "message.h"
 #include "local.h"
+#include "interface.h"
 
 int getsockfd(int type, void *data)
 {
@@ -25,7 +26,8 @@ int getsockfd(int type, void *data)
 	switch (type) {
 	case FD_GETMSG:
 		addr.sin_port = htons(MSG_PORT);
-		addr.sin_addr.s_addr = self->id.ip;
+		//addr.sin_addr.s_addr = self->id.ip;
+		addr.sin_addr.s_addr = INADDR_ANY;
 		fd = socket(AF_INET, SOCK_DGRAM, 0);
 		bind(fd, (struct sockaddr *)&addr, sizeof(addr));
 		
@@ -33,8 +35,8 @@ int getsockfd(int type, void *data)
 	case FD_BROADCAST:
 	case FD_SENDMSG:
 		addr.sin_port = htons(MSG_PORT);
-		fd = socket(AF_INET, SOCK_DGRAM, 0);
 		
+		fd = socket(AF_INET, SOCK_DGRAM, 0);
 		if (type == FD_BROADCAST) {
 			addr.sin_addr.s_addr = self->bcastaddr;
 			int broadcast = 1; 
@@ -89,7 +91,6 @@ void bcast_status(int status)
 	send(fd, &bmsg, sizeof(struct message), 0);
 
 	close(fd);
-	
 }
 void bcast_online()
 {
@@ -99,41 +100,7 @@ void bcast_offline()
 {
 	bcast_status(MSG_OFFLINE);
 }
-/*
-in_addr_t get_local_ip()
-{
-	int fd;
-	in_addr_t ip;
-	struct sockaddr_in *addr;
-	in_addr_t mask = inet_addr("192.168.0.0");
-	
-	struct ifconf ifc;
-	struct ifreq *ifr;
-	
-	ifc.ifc_len = sizeof(struct ifreq) * 4;
-	ifc.ifc_buf = (struct ifreq *)malloc(ifc.ifc_len);
-	
-	fd = socket(AF_INET, SOCK_DGRAM, 0);
-	
-	if (ioctl(fd, SIOCGIFCONF, &ifc) < 0)
-		perror("ioctl");
 
-		int i = ifc.ifc_len / sizeof(struct ifreq);
-	
-	for (ifr = ifc.ifc_req; i > 0; i-- ) {
-		addr = (struct sockaddr_in *)&ifr->ifr_addr;
-		ip = addr->sin_addr.s_addr;;
-		
-		if ((ip & ~mak) == 0)
-			return ip;
-		else
-			ifr++;
-	}
-
-	close(fd);
-	return 0;
-}
-*/
 void get_local_ipinf(void *lip, void *bip)
 {
 	int fd;
@@ -171,21 +138,21 @@ void get_local_ipinf(void *lip, void *bip)
 }
 void peer_online(void *data)
 {
-	struct message *msg = (struct message *)data;
-	struct peer *pr = peer_inlist(msg);
+	struct peer *pr = peer_inlist((struct message *)data);
 
 	if (pr == NULL)
 		return;
 		
-	struct message dupmsg;
-	dupmsg.type = MSG_PEER_INF;
-	memcpy(&dupmsg.id, &self->id, sizeof(struct base_inf));
+	struct message msg;
+	msg.type = MSG_PEER_INF;
+	memcpy(&msg.id, &self->id, sizeof(struct base_inf));
 		
 	int fd = getsockfd(FD_SENDMSG, pr);
-	
+	if (fd < 0)
+		m_printf("send msg error\n");
+
 	sleep(1);
-	send(fd, &dupmsg, sizeof(struct message), 0);
-	send(fd, &dupmsg, sizeof(struct message), 0);
+	send(fd, &msg, sizeof(struct message), 0);
 	
 	close(fd);
 }
@@ -202,11 +169,12 @@ void *recv_msg(void *data)
 	int fd = getsockfd(FD_GETMSG, NULL);
 	
 	while (1) {
+		
 		recv(fd, &msg, sizeof(struct message), 0);
 
 		if (msg.id.ip == self->id.ip)
 			continue;
-		
+
 		dupmsg = (struct message *)malloc(sizeof(struct message));
 		memcpy(dupmsg, &msg, sizeof(struct message));
 		

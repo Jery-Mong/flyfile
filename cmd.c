@@ -29,9 +29,9 @@ int wait_file_ack(struct peer *pr)
 	m_printf("\n");
 	
 	int i;
-	for (i = 5; i > 0; i--) {
+	for (i = 10; i > 0; i--) {
 		sleep(1);
-		m_printf("%d\t", i);
+		m_printf("%d ", i);
 		if (pr->file_rsq_stat == 3) {
 			pr->file_rsq_stat = 0;
 			return RSP_YES;
@@ -54,26 +54,22 @@ void get_filename(char *buf, char *path)
 	else 
 		strcpy(buf, p + 1);
 }
+
 int cmd_send(char **cmd)
 {
-	if (cmd[1] == NULL)
-		goto err;
-		
 	struct peer *pr = getpeerbyidnum(cmd[1]);
 	if (pr == NULL)
 		goto err;
 
 	struct stat st;
-	if (!stat(cmd[2], &st))
+	if (stat(cmd[2], &st))
 		goto err;
 
 	struct message msg;
 	msg.type = MSG_FILE_RQST;
 	memcpy(&msg.id, &self->id, sizeof(struct base_inf));
 
-
 	get_filename(msg.msfile.fname, cmd[2]);
-	//strcpy(msg.msfile.fname, cmd[2]);
 	msg.msfile.fsize = st.st_size;
 
 	int fd = getsockfd(FD_SENDMSG, pr);
@@ -94,10 +90,10 @@ int cmd_send(char **cmd)
 
 	return 1;
 err:
-	m_printf("Invalid");
+	m_printf("Invalid\n");
 	return 0;
 out:
-	m_printf("rejected");
+	m_printf("rejected\n");
 	return 0;
 }
 
@@ -113,7 +109,6 @@ int cmd_printpr(char **cmd)
 }
 int cmd_chat(char **cmd)
 {
-
 	struct peer *pr = getpeerbyidnum(cmd[1]);
 	
 	if (pr == NULL) {

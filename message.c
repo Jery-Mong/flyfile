@@ -16,6 +16,9 @@ void *msg_handler(void *data)
 	case MSG_ONLINE:
 		peer_online(msg);
 		break;
+	case MSG_PEER_INF:
+		peer_inlist(msg);
+		break;
 	case MSG_FILE_RQST:
 	case MSG_CHAT_RQST:
 		respond_rqst(msg);
@@ -23,9 +26,6 @@ void *msg_handler(void *data)
 	case MSG_FILE_ACK:
 	case MSG_CHAT_ACK:
 		handle_ack(msg);
-		break;
-	case MSG_PEER_INF:
-		peer_inlist(msg);
 		break;
 	case MSG_CHAT:
 		chat_get_comment(msg);

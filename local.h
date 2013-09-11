@@ -21,7 +21,7 @@ struct peer {
 
 void global_init();
 struct peer *getpeerbyid(struct base_inf *);
-struct peer *getpeerbyidnum(char *);
+struct peer *getpeerbyidnum(char*);
 struct peer *peer_inlist(struct message *);
 void peer_outlist(struct message *);
 void respond_rqst(struct message *);

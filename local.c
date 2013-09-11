@@ -1,6 +1,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <sys/socket.h>
+#include <arpa/inet.h>
 #include <unistd.h>
 #include <stdio.h>
 
@@ -19,10 +20,10 @@ void global_init()
 	memset(self, 0, sizeof(struct host));
 	
 	gethostname(self->id.name, 32);
-//	self->id.ip = get_local_ip();
+
 	/* get local ip and broadcast ip */
 	get_local_ipinf(&(self->id.ip), &self->bcastaddr);
-	
+		
 	if (!self->id.ip) {
 		printf("error: you don't seem to have connected to LAN, please check your network\n");
 		exit(1);	
@@ -37,19 +38,46 @@ void global_init()
 struct peer *getpeerbyid(struct base_inf *id)
 {
 	node_t *iter;
+	
 	for_each_node(iter, peer_list) {
-		if (!memcmp(id, iter->data, sizeof(struct base_inf)))
+		if (id->ip == ((struct peer *)(iter->data))->id.ip)
 			return iter->data;
 	}
 	return NULL;
 }
 
-struct peer *getpeerbyidnum(char *idnum)
+static int pow_10(int i)
 {
-	node_t *iter;
+	int po = 1;
+	while(i--)
+		po *= 10;
+	return po;
+}
+static int atoui(char *pi)
+{
+	int num = 0;
+	int i;
 	
+	for (i = strlen(pi); i > 0; i--, pi++) {
+		if (*pi > ('0' + 9) || *pi < 0) /* not a valid number */
+			return -1;
+		
+		num += (*pi - '0') * pow_10(i - 1);
+		
+	}
+	return num;
+}
+
+struct peer *getpeerbyidnum(char *cid)
+{
+	int idnum = atoui(cid);
+	
+	if (idnum < 0)
+		return NULL;
+	
+	node_t *iter;	
 	for_each_node(iter, peer_list) {
-		if (((struct peer *)(iter->data))->idnum == atoi(idnum))
+		if (((struct peer *)(iter->data))->idnum == idnum)
 			return iter->data;
 	}
 	return NULL;
@@ -77,6 +105,7 @@ struct peer *peer_inlist(struct message *msg)
 void peer_outlist(struct message *msg)
 {
 	struct peer *pr = getpeerbyid(&msg->id);
+
 
 	if (pr == NULL)
 		return;

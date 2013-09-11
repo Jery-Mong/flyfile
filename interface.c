@@ -62,18 +62,7 @@ void m_printf(char *fmt, ...)
 	update_panels();
 	doupdate();
 }
-/*
-void m_attron(int attr)
-{
-	WINDOW *win = panel_window(pn_main);
-	wattron(win, attr);
-}
-void m_attrof(int attr)
-{
-WINDOW *win = panel_window(pn_main);
-	wattroff(win, attr);
-}
-*/
+
 int popwin_getrsp(void *data)
 {
 	int i;
