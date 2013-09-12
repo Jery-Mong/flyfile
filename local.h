@@ -8,6 +8,7 @@
 struct host {
 	struct base_inf id;
 	in_addr_t bcastaddr;
+	pthread_t msg_handler_thr;
 	int file_status;
 	
 };

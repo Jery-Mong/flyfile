@@ -14,8 +14,8 @@ enum {
 	MSG_CHAT,
 };
 enum {
+	RSP_NO = 0,
 	RSP_YES,
-	RSP_NO,
 };
 struct message {
 	int type;
@@ -24,8 +24,8 @@ struct message {
 	union {
 		int m_answer;
 		struct file_inf m_file;
-		char m_news[32];
-		char m_chat[32];
+		char m_news[64];
+		char m_chat[64];
 
 	} mdata;
 };

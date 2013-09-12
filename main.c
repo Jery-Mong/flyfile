@@ -20,10 +20,11 @@ int main()
 	pthread_t tid1;
 	
 	global_init();
+	
+	pthread_create(&tid1, NULL, recv_msg, NULL);
 	bcast_online();
 
-	pthread_create(&tid1, NULL, recv_msg, NULL);
-	while(1) {
+	while(1)
 		main_wind();
-	}
+
 }

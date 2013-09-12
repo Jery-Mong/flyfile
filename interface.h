@@ -9,7 +9,7 @@ void m_attron(int);
 void m_attroff(int);
 void m_printf(char *, ...);
 int popwin_getrsp(void *);
-void print_chat_comment(char *);
+void print_chat_comment(char *, int, char *);
 void* show_progress(void *);
 
 #endif

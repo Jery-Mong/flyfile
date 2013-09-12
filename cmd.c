@@ -24,7 +24,7 @@ int cmd_quit(char **cmd)
 	exit(0);
 }
 
-int wait_file_ack(struct peer *pr)
+void wait_file_ack(struct peer *pr)
 {
 	m_printf("\n");
 	
@@ -32,15 +32,10 @@ int wait_file_ack(struct peer *pr)
 	for (i = 10; i > 0; i--) {
 		sleep(1);
 		m_printf("%d ", i);
-		if (pr->file_rsq_stat == 3) {
-			pr->file_rsq_stat = 0;
-			return RSP_YES;
-		} else if (pr->file_rsq_stat == 2) {
-			pr->file_rsq_stat = 0;
-			return RSP_NO;
-		}
+		if (pr->file_rsq_stat == RSP_YES)
+			return;
 	}
-	return RSP_NO;
+	pr->file_rsq_stat = RSP_NO;
 }
 
 
@@ -76,8 +71,11 @@ int cmd_send(char **cmd)
 	send(fd, &msg, sizeof(msg), 0);
 	close(fd);
 
-	if (wait_file_ack(pr) == RSP_NO)
+	wait_file_ack(pr);	/* wait here */
+	
+	if (pr->file_rsq_stat == RSP_NO)
 		goto out;
+	
 
 	fd = getsockfd(FD_DATA_SEND, pr);
 
@@ -126,27 +124,33 @@ int cmd_chat(char **cmd)
 	}
 
 	struct message msg;
+	memset(&msg, 0, sizeof(struct message));
 	msg.type = MSG_CHAT;
 	memcpy(&msg.id, &self->id, sizeof(struct base_inf));
-	strcpy(msg.mschat, cmd[2]);
+
+	int i;
+	for (i = 2; cmd[i] != NULL; i++) {
+		strcat(msg.mschat, " ");
+		strcat(msg.mschat, cmd[i]);
+	}
 
 	int fd = getsockfd(FD_SENDMSG, pr);
 	send(fd, &msg, sizeof(msg), 0);
 	close(fd);
 	return 0;
 }
-int wait_chat_ack(struct peer *pr)
+static void wait_chat_ack(struct peer *pr)
 {
 	int i;
-
-	for (i = 3; i > 0; i--) {
+	for (i = 10; i > 0; i--) {
 		sleep(1);
-		m_printf ("%d\t", i);
+		m_printf("%d ", i);
+		if (pr->chat_rsq_stat == RSP_YES)
+			return;
 	}
+	pr->chat_rsq_stat = RSP_NO;
 
-	return pr->chat_rsq_stat;
 }
-
 
 int cmd_chrsq(char **cmd)
 {
@@ -165,10 +169,12 @@ int cmd_chrsq(char **cmd)
 	send(fd, &msg, sizeof(msg), 0);
 	close(fd);
 	
-	if (wait_chat_ack(pr) == RSP_NO)
+	wait_chat_ack(pr);
+	if (pr->chat_rsq_stat == RSP_NO)
 		m_printf ("Rejected\n");
 	else
 		m_printf ("Ok\n");
+	
 	return 0;
 }
 
@@ -214,7 +220,7 @@ char **cmdstr_to_list(char *raw_cmd)
 	if (*raw_cmd == '\0')
 		goto out2;
 	
-	char **args_list = (char **)malloc(sizeof(char **) * 8);
+	char **args_list = (char **)malloc(sizeof(char **) * 16);
 	memset(args_list, 0, sizeof(char **) * 8);
 	
 	if (!is_cmd(raw_cmd))	/* the command is blankspace-terminated */
@@ -242,6 +248,9 @@ out2:
 
 static void free_cmd(char **cmd)
 {
+	if (cmd == NULL)
+		return;
+	
 	int i;
 	for (i = 0; cmd[i] != NULL; i++)
 		free(cmd[i]);

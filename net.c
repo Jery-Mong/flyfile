@@ -151,16 +151,18 @@ void peer_online(void *data)
 	if (fd < 0)
 		m_printf("send msg error\n");
 
-	sleep(1);
-	send(fd, &msg, sizeof(struct message), 0);
-	
-	close(fd);
+	int i;
+	for (i = 0; i < 3; i++) {
+		sleep(1);
+		send(fd, &msg, sizeof(struct message), 0);
+		
+		close(fd);
+	}
 }
 void *recv_msg(void *data)
 {
 	struct message msg;
 	struct message *dupmsg;
-	pthread_t tid;
 	
 	pthread_attr_t attr;
 	pthread_attr_init(&attr);
@@ -178,6 +180,6 @@ void *recv_msg(void *data)
 		dupmsg = (struct message *)malloc(sizeof(struct message));
 		memcpy(dupmsg, &msg, sizeof(struct message));
 		
-		pthread_create(&tid, &attr, msg_handler, dupmsg);
+		pthread_create(&self->msg_handler_thr, &attr, msg_handler, dupmsg);
 	}
 }

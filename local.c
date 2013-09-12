@@ -118,42 +118,46 @@ void respond_rqst(struct message *msg)
 {
 	struct peer *pr;
 	int rsp;
+	struct message r_msg;
 
 	if ((pr = getpeerbyid(&msg->id)) == NULL)
 		return;
 
-	rsp = popwin_getrsp(msg);	
-
-	memset(msg, 0, sizeof(struct message));
+	/* if file_status is busy */
+	/* code ....... */
 	
+	rsp = popwin_getrsp(msg);
+	
+	/* send respond msg */
 	if (msg->type == MSG_FILE_RQST)
-		msg->type = MSG_FILE_ACK;
+		r_msg.type = MSG_FILE_ACK;
 	else
-		msg->type = MSG_CHAT_ACK;
-	
-	msg->answer = rsp;
+		r_msg.type = MSG_CHAT_ACK;
+	memcpy(&r_msg.id, &self->id, sizeof(struct base_inf));
+	r_msg.answer = rsp;
 
 	int fd = getsockfd(FD_SENDMSG, pr);
-	send(fd, &msg, sizeof(struct message), 0);
+	send(fd, &r_msg, sizeof(struct message), 0);
 	close(fd);
-	free(msg);
 
+	if (rsp == RSP_NO)
+		m_printf("\nYou Answer Is [No]");
+	else
+		m_printf("\nYou Answer Is [Yes]");
+	
 	if (msg->type == MSG_CHAT_RQST) {
 		pr->chat_rsq_stat = rsp;
-		return;
+		goto out;
 	}
-	if (rsp == RSP_NO) {
-		m_printf("\nreject\n");
-		return;
-	}
-
 
 	self->file_status = FILE_BUSY;
 	
 	fd = getsockfd(FD_DATA_RECV, pr);
 	recv_file(fd, &msg->msfile);
 	
-	self->file_status = FILE_AVAL;	
+	self->file_status = FILE_AVAL;
+out:
+	free(msg);
 }
 
 void handle_ack(struct message *msg)
@@ -164,10 +168,7 @@ void handle_ack(struct message *msg)
 		return;
 	
 	if (msg->type == MSG_FILE_ACK) {
-		if (msg->answer == RSP_YES)
-			pr->file_rsq_stat = 3; /* 11 */
-		else
-			pr->file_rsq_stat = 2; /* 10 */
+		pr->file_rsq_stat = msg->answer;
 	} else {
 		pr->chat_rsq_stat = msg->answer;
 	}
@@ -184,7 +185,7 @@ void chat_get_comment(struct message *msg)
 	if (pr->chat_rsq_stat == RSP_NO)
 		goto out;
 	
-	print_chat_comment(msg->mschat);
+	print_chat_comment(msg->id.name, pr->idnum, msg->mschat);
 
 out:
 	free(msg);

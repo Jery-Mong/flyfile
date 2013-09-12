@@ -15,7 +15,7 @@ int main()
 
 	server_addr.sin_family = AF_INET;
 	server_addr.sin_port = htons(PORT);
-	server_addr.sin_addr.s_addr = inet_addr("192.168.1.2");
+	server_addr.sin_addr.s_addr = inet_addr("192.168.1.19");
 	
 	int fd = socket(server_addr.sin_family, SOCK_DGRAM, 0);
 
@@ -28,4 +28,5 @@ int main()
 		send(fd, p, strlen(p)+1, 0);
 		printf("send %s\n", p);
 //	}
+	return 0;
 }

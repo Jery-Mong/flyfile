@@ -6,12 +6,15 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <stdarg.h>
+#include <pthread.h>
+#include <signal.h>
 
 #include "message.h"
+#include "common.h"
 #include "cmd.h"
 #include "net.h"
 #include "list.h"
-//#include "interface.h"
+#include "local.h"
 
 PANEL *pn_inf;
 PANEL *pn_main;
@@ -19,24 +22,42 @@ PANEL *pn_prgs;
 
 #define POPWIN_Y 12
 #define POPWIN_X 50
-	
+
+static int pop_flag = 0;
+static int rsp = 0;
+
 void main_wind()
 {
 	char command[128];
 	char **cmdl;
 	
 	WINDOW *win = panel_window(pn_main);
-	//top_panel(pn_main);
-	while (1) {
+
+	while (1) {		
 		waddstr(win, "(ff)");
+		
 		update_panels();
 		doupdate();
-
 		wgetstr(win, command);
 		
-		cmdl = cmdstr_to_list(command);
-		if (cmdl != NULL) {
-			cmd_handler(cmdl);
+		if (pop_flag == 0) {
+			cmdl = cmdstr_to_list(command);
+			
+			if (cmdl != NULL) {
+				cmd_handler(cmdl);
+			}
+		} else {
+			pop_flag = 0;
+			
+			if (command[0] == 'Y' || command[0] == 'y')
+				rsp = RSP_YES;
+			else
+				rsp = RSP_NO;
+
+			pthread_kill(self->msg_handler_thr, SIGUSR1);
+			
+			update_panels();
+			doupdate();
 		}
 	}
 }
@@ -63,14 +84,11 @@ void m_printf(char *fmt, ...)
 	doupdate();
 }
 
-int popwin_getrsp(void *data)
+static void display_popinf(struct message *msg)
 {
 	int i;
 	WINDOW *win = panel_window(pn_inf);
-	struct message *msg = (struct message *)data;
-	wclear(win);
-	
-	show_panel(pn_inf);
+	wclear(win);	
 
 	for (i = 0; i < POPWIN_X; i++)
 		waddch(win, '=');
@@ -79,8 +97,6 @@ int popwin_getrsp(void *data)
 	
 	for (i = 0; i < POPWIN_X; i++)
 		waddch(win, '=');
-
-	
 	
 	wmove(win, 1, POPWIN_X / 2 - 5);
 	if (msg->type == MSG_FILE_RQST) {
@@ -110,26 +126,31 @@ int popwin_getrsp(void *data)
 		
 	} else {
 		wprintw(win, "Chat Request\n");
-		wprintw(win, "Requester: %d\n", msg->id.name);
+		wprintw(win, "Requester: %s\n", msg->id.name);
 	}
 	
 	wprintw(win, "\nDo you aceept [Y/n]:");
 	
+	show_panel(pn_inf);
 	update_panels();
 	doupdate();
-
-	int ret = RSP_NO;
-	switch (wgetch(win)) {
-	case 'Y':
-	case 'y':
-		ret = RSP_YES;
-	case 'N':
-	case 'n':
-		//case default:
-		ret = RSP_NO;	
-	}
-	
 	hide_panel(pn_inf);
+
+}
+static void sig_do_nothing(int signo)
+{
+}
+int popwin_getrsp(void *data)
+{
+	signal(SIGUSR1, sig_do_nothing);
+	
+	display_popinf((struct message *)data);
+	
+	pop_flag = 1;
+	pause();
+	
+	int ret = rsp;
+	
 	return ret;
 }
 
@@ -189,15 +210,18 @@ void winds_quit()
 	endwin();
 }
 
-void print_chat_comment(char *comment)
+void print_chat_comment(char *name, int idnum, char *comment)
 {
 	WINDOW *win = panel_window(pn_main);
 	time_t tt;
 	
         tt = time(NULL);
+	
 	wattron(win, A_BOLD);
-	
-	m_printf("%s\n%s\n", ctime(&tt) + 11, comment);
-	
+	m_printf("\n%s(%d) ", name, idnum);
+	m_printf("%s---%s", ctime(&tt) + 11, comment);
 	wattroff(win, A_BOLD);
+	
+	update_panels();
+	doupdate();
 }
