@@ -1,7 +1,7 @@
 #ifndef __TRANSMIT_H
 #define __TRANSMIT_H
 
-#define PACK_SIZE 1024
+#define PACK_SIZE 512
 
 struct file_piece {
 	int pi_idx;

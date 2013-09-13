@@ -12,12 +12,13 @@
 #include "interface.h"
 #include "transmit.h"
 
-static int his_online = 0;
+static int history_online = 0;
 
 void global_init()
 {
 	self = (struct host *)malloc(sizeof(struct host));
 	memset(self, 0, sizeof(struct host));
+	self->file_status = FILE_AVAL;
 	
 	gethostname(self->id.name, 32);
 
@@ -38,7 +39,6 @@ void global_init()
 struct peer *getpeerbyid(struct base_inf *id)
 {
 	node_t *iter;
-	
 	for_each_node(iter, peer_list) {
 		if (id->ip == ((struct peer *)(iter->data))->id.ip)
 			return iter->data;
@@ -46,31 +46,30 @@ struct peer *getpeerbyid(struct base_inf *id)
 	return NULL;
 }
 
-static int pow_10(int i)
+static int __pow_10(int i)
 {
 	int po = 1;
 	while(i--)
 		po *= 10;
 	return po;
 }
-static int atoui(char *pi)
+static int __atoui(char *pi)
 {
-	int num = 0;
 	int i;
+	int num = 0;
 	
 	for (i = strlen(pi); i > 0; i--, pi++) {
 		if (*pi > ('0' + 9) || *pi < 0) /* not a valid number */
 			return -1;
 		
-		num += (*pi - '0') * pow_10(i - 1);
-		
+		num += (*pi - '0') * __pow_10(i - 1);
 	}
 	return num;
 }
 
 struct peer *getpeerbyidnum(char *cid)
 {
-	int idnum = atoui(cid);
+	int idnum = __atoui(cid);
 	
 	if (idnum < 0)
 		return NULL;
@@ -93,8 +92,9 @@ struct peer *peer_inlist(struct message *msg)
 	
 	pr = (struct peer *)malloc(sizeof(struct peer));
 	memset(pr, 0, sizeof(struct peer));
+	
 	memcpy(&pr->id, &msg->id, sizeof(struct base_inf));
-	pr->idnum = his_online++;
+	pr->idnum = history_online++;
 	
 	list_insert_tail(peer_list, pr);
 
@@ -123,10 +123,10 @@ void respond_rqst(struct message *msg)
 	if ((pr = getpeerbyid(&msg->id)) == NULL)
 		return;
 
-	/* if file_status is busy */
-	/* code ....... */
-	
-	rsp = popwin_getrsp(msg);
+	if (self->file_status == FILE_BUSY)
+		return;
+	else
+		rsp = popwin_getrsp(msg);
 	
 	/* send respond msg */
 	if (msg->type == MSG_FILE_RQST)
@@ -141,21 +141,24 @@ void respond_rqst(struct message *msg)
 	close(fd);
 
 	if (rsp == RSP_NO)
-		m_printf("\nYou Answer Is [No]");
+		m_printf("You Answer Is [No]\n");
 	else
-		m_printf("\nYou Answer Is [Yes]");
+		m_printf("You Answer Is [Yes]\n");
 	
 	if (msg->type == MSG_CHAT_RQST) {
 		pr->chat_rsq_stat = rsp;
 		goto out;
 	}
-
-	self->file_status = FILE_BUSY;
 	
 	fd = getsockfd(FD_DATA_RECV, pr);
-	recv_file(fd, &msg->msfile);
+
+	if (fd < 0)
+		goto out;
 	
+	self->file_status = FILE_BUSY;	
+	recv_file(fd, &msg->msfile);
 	self->file_status = FILE_AVAL;
+	close(fd);
 out:
 	free(msg);
 }
@@ -186,7 +189,6 @@ void chat_get_comment(struct message *msg)
 		goto out;
 	
 	print_chat_comment(msg->id.name, pr->idnum, msg->mschat);
-
 out:
 	free(msg);
 }

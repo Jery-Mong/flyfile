@@ -21,7 +21,7 @@ PANEL *pn_main;
 PANEL *pn_prgs;
 
 #define POPWIN_Y 12
-#define POPWIN_X 50
+#define POPWIN_X 51
 
 static int pop_flag = 0;
 static int rsp = 0;
@@ -34,7 +34,7 @@ void main_wind()
 	WINDOW *win = panel_window(pn_main);
 
 	while (1) {		
-		waddstr(win, "(ff)");
+		waddstr(win, "ff>>");
 		
 		update_panels();
 		doupdate();
@@ -153,29 +153,36 @@ int popwin_getrsp(void *data)
 	
 	return ret;
 }
-
 void* show_progress(void *data)
 {
-	int i;
-	int *prgs = (int *)data;
-	WINDOW *win = panel_window(pn_prgs);
-		
-	show_panel(pn_prgs);
-
-	wmove(win, 1, 0);
-	for (i = 0; i < POPWIN_X; i++)
-		waddch(win, '-');
+	int i ;
+	int *per = (int *)data;
+	int cur_per;
 	
-	while (*prgs <= 100) {
-		wmove(win, 1, 0);		
-		for (i = 0; i < *prgs / (100 / POPWIN_X); i++)
+	WINDOW *win = panel_window(pn_prgs);	
+	show_panel(pn_prgs);
+	wclear(win);
+	
+	wmove(win, 1, 0);
+	for (i = 0; i < POPWIN_X; i++) {
+		waddch(win, '-');
+	}
+	
+	while ((cur_per = *per) <= 100) {
+		wmove(win, 1, 0);
+		for (i = 0; i < cur_per / 2; i++)
 			waddch(win, ' ' | A_REVERSE);
-		wmove(win, 1, POPWIN_X / 2);
-		wprintw(win, "%d%", *prgs);
+
+		wmove(win, 0, 0);
+		wprintw(win, "%d%", cur_per);
 		
 		update_panels();
 		doupdate();
-		usleep(10000);
+
+		if (*per == 100)
+			break;
+		
+		usleep(100000);
 	}
 	
 	hide_panel(pn_prgs);
@@ -197,8 +204,7 @@ void winds_init()
 	
 	win = newwin(LINES, COLS, 0, 0);
 	pn_main = new_panel(win);
-
-//	curs_set(0);
+	
 	scrollok(win, 1);
 }
 

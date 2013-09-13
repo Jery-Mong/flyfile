@@ -7,8 +7,7 @@
 #include <unistd.h>
 #include <sys/ioctl.h>
 #include <stdio.h>
-#include <pthread.h> 
-
+#include <pthread.h>
 
 #include "common.h"
 #include "net.h"
@@ -51,9 +50,6 @@ int getsockfd(int type, void *data)
 		return fd;
 		
 	case FD_DATA_SEND:
-		if (pr == NULL)
-			return -1;
-		
 		addr.sin_port = htons(DATA_PORT);
 		addr.sin_addr.s_addr = pr->id.ip;
 		fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -64,9 +60,6 @@ int getsockfd(int type, void *data)
 		return fd;
 		
 	case FD_DATA_RECV:
-		if (pr == NULL)
-			return -1;
-		
 		addr.sin_port = htons(DATA_PORT);
 		addr.sin_addr.s_addr = self->id.ip;
 		fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -125,10 +118,13 @@ void get_local_ipinf(void *lip, void *bip)
 		ip = addr->sin_addr.s_addr;
 		
 		if ((ip & mask) == mask) {
-			*(in_addr_t *)lip = ip;
-
-			ioctl(fd, SIOCGIFBRDADDR, ifr);
-			*(in_addr_t *)bip = (((struct sockaddr_in *)&ifr->ifr_addr)->sin_addr).s_addr;
+			if (lip != NULL)
+				*(in_addr_t *)lip = ip;
+			
+			if (bip != NULL) {
+				ioctl(fd, SIOCGIFBRDADDR, ifr);
+				*(in_addr_t *)bip = (((struct sockaddr_in *)&ifr->ifr_addr)->sin_addr).s_addr;
+			}
 			return;
 		}
 		
@@ -139,9 +135,6 @@ void get_local_ipinf(void *lip, void *bip)
 void peer_online(void *data)
 {
 	struct peer *pr = peer_inlist((struct message *)data);
-
-	if (pr == NULL)
-		return;
 		
 	struct message msg;
 	msg.type = MSG_PEER_INF;
@@ -170,8 +163,7 @@ void *recv_msg(void *data)
 	
 	int fd = getsockfd(FD_GETMSG, NULL);
 	
-	while (1) {
-		
+	while (1) {		
 		recv(fd, &msg, sizeof(struct message), 0);
 
 		if (msg.id.ip == self->id.ip)

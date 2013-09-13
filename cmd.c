@@ -25,9 +25,7 @@ int cmd_quit(char **cmd)
 }
 
 void wait_file_ack(struct peer *pr)
-{
-	m_printf("\n");
-	
+{	
 	int i;
 	for (i = 10; i > 0; i--) {
 		sleep(1);
@@ -75,6 +73,8 @@ int cmd_send(char **cmd)
 	
 	if (pr->file_rsq_stat == RSP_NO)
 		goto out;
+	else
+		m_printf("Ok\n");
 	
 
 	fd = getsockfd(FD_DATA_SEND, pr);
@@ -85,6 +85,7 @@ int cmd_send(char **cmd)
 	self->file_status = FILE_BUSY;
 	send_file(fd, cmd[2]);
 	self->file_status = FILE_AVAL;
+	close(fd);
 
 	return 1;
 err:
