@@ -3,6 +3,7 @@
 
 struct cmd {
 	char *name;
+	char *help_info;
 	int (*cmd_func)(char **);
 };
 

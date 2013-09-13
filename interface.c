@@ -21,7 +21,7 @@ PANEL *pn_main;
 PANEL *pn_prgs;
 
 #define POPWIN_Y 12
-#define POPWIN_X 51
+#define POPWIN_X 50
 
 static int pop_flag = 0;
 static int rsp = 0;

@@ -15,6 +15,7 @@
 #include "cmd.h"
 #include "transmit.h"
 #include "local.h"
+int cmd_help(char **);
 
 int cmd_quit(char **cmd)
 {
@@ -73,12 +74,8 @@ int cmd_send(char **cmd)
 	
 	if (pr->file_rsq_stat == RSP_NO)
 		goto out;
-	else
-		m_printf("Ok\n");
-	
 
 	fd = getsockfd(FD_DATA_SEND, pr);
-
 	if (fd < 0)
 		goto out;
 
@@ -87,6 +84,7 @@ int cmd_send(char **cmd)
 	self->file_status = FILE_AVAL;
 	close(fd);
 
+	
 	return 1;
 err:
 	m_printf("Invalid\n");
@@ -178,26 +176,44 @@ int cmd_chrsq(char **cmd)
 	
 	return 0;
 }
-
 struct cmd cmd_list[] = {
 	[0] = {
-		.name = "quit",
-		.cmd_func = cmd_quit,
-	},[1] = {
 		.name = "send",
+		.help_info = "<send idnum file>: sends a file to a peer",
 		.cmd_func = cmd_send,
-	},[2] = {
+	},[1] = {
 		.name = "pp",
+		.help_info = "<pp>: prints all peers with which localhost has connected",
 		.cmd_func = cmd_printpr,
-	},[3] = {
+	},[2] = {
 		.name = "ch",
+		.help_info = "<ch idnum comment>: send coment to a peer",
 		.cmd_func = cmd_chat,
-	},[4] = {
-		.name = "chrsq",
+	},[3] = {
+		.name = "chrq",
+		.help_info = "<chrsq idnum>: ask for chatting with a peer",
 		.cmd_func = cmd_chrsq,
+	},[4] = {
+		.name = "h",
+		.help_info = "<help>",
+		.cmd_func = cmd_help,
+	},[5] = {
+		.name = "quit",
+		.help_info = "<quit>",
+		.cmd_func = cmd_quit,
 	}
 };
 
+int cmd_help(char **cmd)
+{
+	int cmd_cnt = sizeof(cmd_list) / sizeof(cmd_list[0]);
+
+	int i;
+	for (i = 0; i < cmd_cnt; i++) {
+		m_printf("%d. %s%c %s\n", i, cmd_list[i].name, 9, cmd_list[i].help_info);
+	}
+	return 0;
+}
 /* the command is blankspace-terminated */
 static int is_cmd(const char *cmd)
 {
